@@ -31,30 +31,56 @@ exports.getLastBillData=async(req, res, next)=>{
     });
 }
 exports.newBillGen=async(req,res,next)=>{
-    const {location,currentBillNo,rows,payMode}=req.body;
-    connectDb.getConnection((err, conn) => {
+    const {location,currentBillNo,rows,payMode,userId,ac,fdate,tdate}=req.body;
+    const alterROw=Array();
+    console.log(req.body);
+     connectDb.getConnection((err, conn) => {
         if (err) {
-            console.log("hi");
+            console.log("hi111");
         }
         else{
-            if(payMode=="Cash"){
-                const bill="";
-                rows.map(row=>{
-                const sql="select * from stock where location='"+location+"' and id='"+row.id+"'";
+            const arrayValid = (row) =>{
+               return  alterROw.push(row);
+            }
+            const addRow = (location, rowId)=>{
+                const sql="select * from stock where location='"+location+"' and id='"+rowId+"'";
                 conn.query(sql,(err, rowData) => {
                     if(err){
                         console.log(err);
                     }else{
                         console.log(sql);
-                       console.log(rowData) 
+                        return rowData[0].pocket_stock;               
                     }
                 })
+            }
+            const sql1="select count(id) as lastCount from billing where date >='"+fdate+"' and date<='"+tdate+"' and created_by='"+userId+"' and location='"+location+"'";  
+                conn.query(sql1,(err, rowData) => {
+                if(err){
+                    console.log(err);
+                }else{
+                    const newBillNo =Number(rowData[0].lastCount)+Number(1);
+                    console.log(sql1);
+                    const BillNo =  newBillNo<10 ?  ac+location+userId+"0000"+newBillNo : newBillNo<100 ?  ac+location+userId+"000"+newBillNo : newBillNo<1000 ?  ac+location+userId+"00"+newBillNo : newBillNo<10000 ?  ac+location+userId+"0"+newBillNo : newBillNo>10000 ?  ac+location+userId+newBillNo : newBillNo;
+                    if(payMode==="Cash"){
+                        rows.map(row=>{
+                            const pocketStock=addRow(location,row.id);                         
+                            if(pocketStock===0){
+                                arrayValid(row);
+                                console.log("hi")
+                            }                        
+                        })
+                        console.log(alterROw);
+                    }else{
+                        console.log("Else varuthu" +payMode)
+                    } 
 
-                
-                })
-            }else{
 
-            } 
+
+
+
+                }
+            });
         }
+    
     });
 }
